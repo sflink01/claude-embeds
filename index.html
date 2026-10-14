@@ -3,9 +3,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Social Urban Systems — 3D booklet</title>
 <style>
-:root{--bg:#e9e8e4;--ink:#1c1c1c;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#161616;--ink:#eee}}
-:root[data-theme=dark]{--bg:#161616;--ink:#eee}
+:root{--bg:#000;--ink:#eee;color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#000;--ink:#eee}}
+:root[data-theme=dark]{--bg:#000;--ink:#eee}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 html,body{height:100%;margin:0;overflow:hidden;background:var(--bg);color:var(--ink);font:13px/1.4 system-ui,-apple-system,Helvetica,Arial,sans-serif;user-select:none}
 #c{position:absolute;inset:0;width:100%;height:100%;cursor:grab;touch-action:none}
@@ -25,9 +25,9 @@ const W=180,H=220,T=4,SEG=36,PIN=16,nl=1+Math.ceil(P.length/2),DZ=T/nl;
 const R=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:true});
 R.outputEncoding=THREE.sRGBEncoding;R.setPixelRatio(Math.min(devicePixelRatio,2));
 const S=new THREE.Scene(),cam=new THREE.PerspectiveCamera(30,1,250,1500),rig=new THREE.Group(),book=new THREE.Group();
-S.add(new THREE.AmbientLight(0xffffff,.68));const dl=new THREE.DirectionalLight(0xffffff,.4);dl.position.set(0,90,200);S.add(dl);S.add(rig);rig.add(book);
+S.add(new THREE.AmbientLight(0xffffff,.68));const dl=new THREE.DirectionalLight(0xffffff,.4);dl.position.set(-45,90,200);S.add(dl);S.add(rig);rig.add(book);
 const sol=c=>new THREE.Color(c).convertSRGBToLinear(),paper=sol(0xf8f8f6),aniso=Math.min(4,R.capabilities.getMaxAnisotropy());
-let f=0,dirty=1,rx=.15,ry=.45,rxT=rx,ryT=ry,bx=-W/2;
+let AMP=0,f=0,dirty=1,rx=.15,ry=.45,rxT=rx,ryT=ry,bx=-W/2;
 function tex(src,flip){if(!src)return null;const im=new Image(),t=new THREE.Texture(im);t.encoding=THREE.sRGBEncoding;t.anisotropy=aniso;
   if(flip){t.wrapS=THREE.RepeatWrapping;t.repeat.x=-1;t.offset.x=1}
   im.onload=()=>{t.needsUpdate=true;dirty=1};im.src=src;return t}
@@ -43,7 +43,7 @@ function upd(l,p){
   for(let j=0;j<=SEG;j++){
     const s=j*ds,u=Math.min(1,s/PIN),zz=z+(h-z0)*u*u*(3-2*u);
     l.pos.set([x,H/2,zz,x,-H/2,zz],j*6);
-    const ph=a0-k*Math.pow((s+ds/2)/W,1.2);x+=Math.cos(ph)*ds;z+=Math.sin(ph)*ds}
+    const q=(s+ds/2)/W,ph=a0-k*Math.pow(q,1.2)+AMP*(1-2*p)*(.05+.14*q);x+=Math.cos(ph)*ds;z+=Math.sin(ph)*ds}
   l.g.attributes.position.needsUpdate=true;l.g.computeVertexNormals()}
 const L=[leaf(0,C[0],null)];for(let k=0;k<P.length;k+=2)L.push(leaf(L.length,P[k],P[k+1]||null));
 L.push(leaf(nl,null,C[1]));
@@ -68,7 +68,7 @@ addEventListener('resize',size);
 const ease=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;let last=performance.now();
 (function loop(now){requestAnimationFrame(loop);const dt=Math.min(.05,(now-last)/1000);last=now;
   L.forEach(l=>{if(l.run){l.t=Math.min(1,l.t+dt/.95);l.p=l.from+(l.to-l.from)*ease(Math.max(0,l.t));if(l.t==1)l.run=0;upd(l,l.p);dirty=1}});
-  const k=1-Math.exp(-dt*10),nb=f>nl?W/2:f?0:-W/2;
+  const k=1-Math.exp(-dt*10),nb=f>nl?W/2:f?0:-W/2,at=f>=1&&f<=nl?1:0;if(Math.abs(at-AMP)>.002){AMP+=(at-AMP)*(1-Math.exp(-dt*5));L.forEach(l=>upd(l,l.p));dirty=1}
   if(Math.abs(nb-bx)+Math.abs(ryT-ry)+Math.abs(rxT-rx)>1e-4){bx+=(nb-bx)*(1-Math.exp(-dt*5));ry+=(ryT-ry)*k;rx+=(rxT-rx)*k;dirty=1}
   if(dirty){sp.visible=L[0].p<.5||L[nl].p>.5;spine.scale.x=L[nl].p>.5?-1:1;book.position.x=bx;rig.rotation.set(rx,ry,0);R.render(S,cam);dirty=0}})(last);
 size();vis();lab();
